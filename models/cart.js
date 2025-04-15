@@ -1,4 +1,4 @@
-// models/Cart.js
+// models/cart.js
 
 const mongoose = require("mongoose");
 
@@ -14,4 +14,4 @@ const cartSchema = new mongoose.Schema({
   items: [itemSchema]
 });
 
-module.exports = mongoose.model("Cart", cartSchema);
+module.exports = mongoose.model("cart", cartSchema);

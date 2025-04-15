@@ -23,4 +23,4 @@ const orderSchema = new mongoose.Schema({
 });
 
 // ✅ Prevent OverwriteModelError
-module.exports = mongoose.models.Order || mongoose.model("Order", orderSchema);
+module.exports = mongoose.models.order || mongoose.model("order", orderSchema);

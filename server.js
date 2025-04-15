@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const cart = require("./models/cart");
 const order = require('./models/order');
 const orderRoutes = require('./routes/order');
-const payment = require('./routes/payment');
+const paymentRoutes = require('./routes/payment');
 
 
 

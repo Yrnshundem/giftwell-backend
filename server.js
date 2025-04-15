@@ -6,73 +6,55 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const CryptoJS = require("crypto-js");
 const jwt = require("jsonwebtoken");
-const cart = require("./models/cart");
-const order = require('./models/order');
-const orderRoutes = require('./routes/order');
-const paymentRoutes = require('./routes/payment');
-const authenticate = require("./middleware/authenticate");
 
+const cart = require("./models/cart");
+const Order = require("./models/order");
+const authenticate = require("./middleware/authenticate");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: "https://gift-well-frontend.vercel.app", // Replace with your actual frontend domain
+  origin: "https://gift-well-frontend.vercel.app",
   credentials: true
 }));
 app.use(express.json());
-
 app.use(bodyParser.json());
 
-app.use('/api/orders', orderRoutes);
-app.use('/api/payment', paymentRoutes); // Adjust path if needed
-
-
-// MongoDB Connection
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 }).then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch(err => console.error("MongoDB connection error:", err));
 
 // Models
 const User = mongoose.model("User", new mongoose.Schema({
-    fullName: String,
-    email: { type: String, unique: true },
-    password: String,
-    role: { type: String, default: "user" }
+  fullName: String,
+  email: { type: String, unique: true },
+  password: String,
+  role: { type: String, default: "user" }
 }));
 
 const Payment = mongoose.model("Payment", new mongoose.Schema({
-    fullName: String,
-    cardNumber: String,
-    expiryDate: String,
-    cvv: String,
-    amount: Number,
-    timestamp: { type: Date, default: Date.now }
+  fullName: String,
+  cardNumber: String,
+  expiryDate: String,
+  cvv: String,
+  amount: Number,
+  timestamp: { type: Date, default: Date.now }
 }));
 
-
-
-
-const BitcoinPayment = mongoose.model("BitcoinPayment", new mongoose.Schema({
-    fullName: String,
-    email: String,
-    amount: Number,
-    chargeId: String,
-    status: String,
-    timestamp: { type: Date, default: Date.now }
-}));
-
-// Helpers
+// Helper: Encrypt card info
 const encryptCard = (data) => CryptoJS.AES.encrypt(data, process.env.SECRET_KEY).toString();
 
-// Routes
 
-// Signup
+// Routes
+// --- Signup ---
 app.post("/api/signup", async (req, res) => {
-    const { fullName, email, password } = req.body;
+  const { fullName, email, password } = req.body;
+  try {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.json({ success: false, message: "Email already exists" });
 
@@ -81,31 +63,43 @@ app.post("/api/signup", async (req, res) => {
     await newUser.save();
 
     res.json({ success: true, message: "User created successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Signup failed" });
+  }
 });
 
-// Login
+
+// --- Login ---
 app.post("/api/login", async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
+  try {
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(400).json({ success: false, error: "Invalid credentials" });
+      return res.status(400).json({ success: false, error: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.SECRET_KEY, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.SECRET_KEY, {
+      expiresIn: "1h"
+    });
+
     res.json({ success: true, token, role: user.role });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Login failed" });
+  }
 });
 
-// Check Login
-app.get("/api/isLoggedIn", (req, res) => {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.json({ isLoggedIn: false, message: "No token provided" });
 
-    try {
-        const decoded = jwt.verify(token, process.env.SECRET_KEY);
-        res.json({ isLoggedIn: true, role: decoded.role, userId: decoded.id });
-    } catch {
-        res.json({ isLoggedIn: false, message: "Invalid token" });
-    }
+// --- Check if Logged In ---
+app.get("/api/isLoggedIn", (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.json({ isLoggedIn: false });
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    res.json({ isLoggedIn: true, role: decoded.role, userId: decoded.id });
+  } catch {
+    res.json({ isLoggedIn: false });
+  }
 });
 
 // Logout
@@ -143,22 +137,7 @@ app.post("/api/payment", async (req, res) => {
     res.json({ success: true, message: "Payment stored securely" });
 });
 
-// Bitcoin Payment
-app.post("/api/coinbase/payment", async (req, res) => {
-    const { fullName, email, amount, chargeId, status } = req.body;
 
-    if (!fullName || !email || !amount || !chargeId || !status) {
-        return res.status(400).json({ success: false, message: "Missing required payment data" });
-    }
-
-    try {
-        const btcPayment = new BitcoinPayment({ fullName, email, amount, chargeId, status });
-        await btcPayment.save();
-        res.json({ success: true, message: "Bitcoin payment recorded successfully" });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to store Bitcoin payment" });
-    }
-});
 
 // Order History (Admin)
 app.get("/api/order_history", async (req, res) => {
@@ -166,57 +145,61 @@ app.get("/api/order_history", async (req, res) => {
     res.json(orders);
 });
 
-// Cart: Add
+// --- Cart: Add Item ---
 app.post("/api/cart/add", authenticate, async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { name, price, image, quantity = 1 } = req.body;
+  try {
+    const userId = req.user.id;
+    const { name, price, image, quantity = 1 } = req.body;
 
-        let cart = await Cart.findOne({ userId });
-        if (!cart) cart = new Cart({ userId, items: [] });
+    let cart = await Cart.findOne({ userId });
+    if (!cart) cart = new Cart({ userId, items: [] });
 
-        const existingItem = cart.items.find(item => item.name === name);
-        if (existingItem) {
-            existingItem.quantity += quantity;
-        } else {
-            cart.items.push({ name, price, image, quantity });
-        }
-
-        await cart.save();
-        res.status(200).json({ message: "Item added to cart", cart });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    const existingItem = cart.items.find(item => item.name === name);
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      cart.items.push({ name, price, image, quantity });
     }
+
+    await cart.save();
+    res.status(200).json({ message: "Item added to cart", cart });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Cart: Fetch
+
+// --- Cart: Fetch Items ---
 app.get("/api/cart", authenticate, async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const cart = await Cart.findOne({ userId });
-        res.json({ items: cart?.items || [] });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const userId = req.user.id;
+    const cart = await Cart.findOne({ userId });
+    res.json({ items: cart?.items || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Cart: Remove
+
+// --- Cart: Remove Item ---
 app.delete("/api/cart/remove/:name", authenticate, async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { name } = req.params;
+  try {
+    const userId = req.user.id;
+    const { name } = req.params;
 
-        let cart = await Cart.findOne({ userId });
-        if (!cart) return res.status(404).json({ error: "Cart not found" });
+    let cart = await Cart.findOne({ userId });
+    if (!cart) return res.status(404).json({ error: "Cart not found" });
 
-        cart.items = cart.items.filter(item => item.name !== name);
-        await cart.save();
+    cart.items = cart.items.filter(item => item.name !== name);
+    await cart.save();
 
-        res.json({ message: "Item removed from cart", cart });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    res.json({ message: "Item removed from cart", cart });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Start Server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// --- Start Server ---
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -10,20 +10,19 @@ const cart = require("./models/cart");
 const order = require('./models/order');
 const orderRoutes = require('./routes/order');
 const paymentRoutes = require('./routes/payment');
-
-
-
-
 const authenticate = require("./middleware/authenticate");
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: "http://127.0.0.1:5500", // Adjust if hosted
-    credentials: true
+  origin: "https://gift-well-frontend.vercel.app", // Replace with your actual frontend domain
+  credentials: true
 }));
+app.use(express.json());
+
 app.use(bodyParser.json());
 
 app.use('/api/orders', orderRoutes);

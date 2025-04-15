@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const CoinbaseCommerce = require("coinbase-commerce-node");
 const authenticate = require("../middleware/authenticate");
-const Order = require("../models/Order");
+const Order = require("../models/order");
 
 const { Client, resources } = CoinbaseCommerce;
 const { Charge } = resources;

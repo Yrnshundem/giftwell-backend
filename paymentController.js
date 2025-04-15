@@ -1,9 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { Client, resources } = require('coinbase-commerce-node');
-const { Charge } = resources;
-
-Client.init('b605046d-ad20-4834-9dfe-27dde1a9136b'); // your API key
 
 router.post('/create-charge', async (req, res) => {
     const { name, description, amount } = req.body;

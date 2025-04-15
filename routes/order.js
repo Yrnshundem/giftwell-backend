@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const authenticate = require('../middleware/authenticate'); // ✅ correct
 
-const Order = require('../models/Order'); // Corrected import path to Order model
+const Order = require('../models/order'); // Corrected import path to Order model
 
 router.post('/', authenticate, async (req, res) => {
     try {

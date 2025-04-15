@@ -9,12 +9,9 @@ const jwt = require("jsonwebtoken");
 const cart = require("./models/cart");
 const order = require('./models/order');
 const orderRoutes = require('./routes/order');
-const coinbaseRoutes = require('./routes/coinbase');
-const coinbase = require('coinbase-commerce-node');
-const { Client, resources } = coinbase;
-const { Charge } = resources;
 
-Client.init(process.env.COINBASE_API_KEY);
+
+
 
 const authenticate = require("./middleware/authenticate");
 
@@ -27,7 +24,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(bodyParser.json());
-app.use('/api/coinbase', coinbaseRoutes);
+
 app.use('/api/orders', orderRoutes);
 app.use("/api/payment", require("./routes/payment")); // Adjust path if needed
 

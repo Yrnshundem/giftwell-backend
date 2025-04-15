@@ -27,7 +27,7 @@ app.use(cors({
 app.use(bodyParser.json());
 
 app.use('/api/orders', orderRoutes);
-app.use("/api/payment", require("./routes/payment")); // Adjust path if needed
+app.use('/api/payment', paymentRoutes); // Adjust path if needed
 
 
 // MongoDB Connection

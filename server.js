@@ -151,10 +151,9 @@ app.post("/api/cart/add", authenticate, async (req, res) => {
     const userId = req.user.id;
     const { name, price, image, quantity = 1 } = req.body;
 
-    let cart = await Cart.findOne({ userId });
-    if (!cart) cart = new Cart({ userId, items: [] });
-
+    let cart = await Cart.findOne({ userId }) || new Cart({ userId, items: [] });
     const existingItem = cart.items.find(item => item.name === name);
+
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
@@ -162,11 +161,12 @@ app.post("/api/cart/add", authenticate, async (req, res) => {
     }
 
     await cart.save();
-    res.status(200).json({ message: "Item added to cart", cart });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "Item added", cart });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // --- Cart: Fetch Items ---
@@ -175,10 +175,11 @@ app.get("/api/cart", authenticate, async (req, res) => {
     const userId = req.user.id;
     const cart = await Cart.findOne({ userId });
     res.json({ items: cart?.items || [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // --- Cart: Remove Item ---
@@ -186,19 +187,21 @@ app.delete("/api/cart/remove/:name", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
     const { name } = req.params;
+    const cart = await Cart.findOne({ userId });
 
-    let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ error: "Cart not found" });
 
     cart.items = cart.items.filter(item => item.name !== name);
     await cart.save();
 
-    res.json({ message: "Item removed from cart", cart });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "Item removed", cart });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
+
+    
 // --- Start Server ---
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs"); // Use bcryptjs for consistency
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
@@ -15,25 +15,22 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
       fullName,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       role: "user"
     });
     await user.save();
 
+    console.log("User created:", { fullName, email: normalizedEmail });
     res.status(201).json({ message: "Sign up successful! Please log in." });
   } catch (err) {
     console.error("Signup error:", err);
@@ -50,21 +47,22 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
+      console.log("Login failed: User not found for email:", normalizedEmail);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("Login failed: Incorrect password for email:", normalizedEmail);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT
     const token = jwt.sign({ id: user._id, role: user.role }, SECRET_KEY, { expiresIn: "1h" });
 
+    console.log("Login successful for email:", normalizedEmail);
     res.json({ token, role: user.role });
   } catch (err) {
     console.error("Login error:", err);

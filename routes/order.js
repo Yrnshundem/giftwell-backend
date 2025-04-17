@@ -1,31 +1,24 @@
-// routes/order.js
-const express = require('express');
-const router = express.Router();
-const authenticate = require('../middleware/authenticate'); // ✅ correct
+const mongoose = require("mongoose");
 
-const Order = require('../models/order'); // Corrected import path to Order model
-
-router.post('/', authenticate, async (req, res) => {
-    try {
-        const { fullName, phone, address, city, country, items, total } = req.body;
-
-        const newOrder = new Order({
-            userId: req.user.id, // from your jwt
-            fullName,
-            phone,
-            address,
-            city,
-            country,
-            items,
-            total
-        });
-
-        await newOrder.save();
-        res.status(201).json({ message: "Order confirmed successfully" });
-    } catch (err) {
-        console.error("Order error:", err);
-        res.status(500).json({ message: "Something went wrong" });
-    }
+const itemSchema = new mongoose.Schema({
+    productId: { type: String, required: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    quantity: { type: Number, required: true, min: 1 }
 });
 
-module.exports = router;
+const orderSchema = new mongoose.Schema({
+    userId: { type: String, required: false }, // String to support "guest"
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    country: { type: String, required: true },
+    items: [itemSchema],
+    total: { type: Number, required: true },
+    status: { type: String, default: "pending" },
+    paymentMethod: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model("order", orderSchema);

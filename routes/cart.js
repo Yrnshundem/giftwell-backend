@@ -6,7 +6,7 @@ const authenticate = require("../middleware/authenticate");
 router.post("/add", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { productId, name, price, quantity = 1 } = req.body;
+    const { productId, name, price, quantity = 1, image } = req.body;
 
     if (!productId || !name || price == null || !quantity) {
       return res.status(400).json({ message: "Missing required fields: productId, name, price, or quantity" });
@@ -23,8 +23,9 @@ router.post("/add", authenticate, async (req, res) => {
 
     if (existingItem) {
       existingItem.quantity += quantity;
+      if (image) existingItem.image = image; // Update image if provided
     } else {
-      cart.items.push({ productId, name, price, quantity });
+      cart.items.push({ productId, name, price, quantity, image });
     }
 
     cart.total = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -50,7 +51,7 @@ router.get("/", authenticate, async (req, res) => {
 router.put("/update", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { productId, quantity } = req.body;
+    const { productId, quantity, image } = req.body;
 
     if (!productId || !Number.isInteger(quantity) || quantity < 1) {
       return res.status(400).json({ message: "Invalid productId or quantity" });
@@ -63,6 +64,7 @@ router.put("/update", authenticate, async (req, res) => {
     if (!item) return res.status(404).json({ message: "Item not found in cart" });
 
     item.quantity = quantity;
+    if (image) item.image = image; // Update image if provided
     cart.total = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     await cart.save();
 
@@ -118,12 +120,14 @@ router.post("/merge", authenticate, async (req, res) => {
       const existingItem = cart.items.find((item) => item.productId === guestItem.productId);
       if (existingItem) {
         existingItem.quantity += guestItem.quantity || 1;
+        if (guestItem.image) existingItem.image = guestItem.image; // Merge image
       } else {
         cart.items.push({
           productId: guestItem.productId,
           name: guestItem.name,
           price: guestItem.price,
           quantity: guestItem.quantity || 1,
+          image: guestItem.image // Include image
         });
       }
     }

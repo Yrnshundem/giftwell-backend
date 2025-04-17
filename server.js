@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const cartRoutes = require("./routes/cart");
 const paymentRoutes = require("./routes/payment");
 const authenticate = require("./middleware/authenticate");
+const User = require("./models/user");
 const order = require("./models/order");
 
 const app = express();
@@ -20,19 +21,9 @@ if (!process.env.MONGO_URI || !process.env.SECRET_KEY) {
 }
 
 // CORS configuration
-const allowedOrigins = [
-  "https://gift-well-frontend.vercel.app",
-  "http://localhost:3000", // Add local dev URL if needed
-];
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: ["https://gift-well-frontend.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -50,27 +41,16 @@ mongoose
     process.exit(1);
   });
 
-// User model
-const user = mongoose.model(
-  "user",
-  new mongoose.Schema({
-    fullName: String,
-    email: { type: String, unique: true },
-    password: String,
-    role: { type: String, default: "user" },
-  })
-);
-
 // Routes
 app.post("/api/signup", async (req, res) => {
   const { fullName, email, password } = req.body;
   try {
-    const existingUser = await user.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.json({ success: false, message: "Email already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new user({ fullName, email, password: hashedPassword });
+    const newUser = new User({ fullName, email, password: hashedPassword });
     await newUser.save();
 
     res.json({ success: true, message: "User created successfully" });
@@ -83,7 +63,7 @@ app.post("/api/signup", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const userInstance = await user.findOne({ email });
+    const userInstance = await User.findOne({ email });
     if (!userInstance || !(await bcrypt.compare(password, userInstance.password))) {
       return res.status(400).json({ success: false, error: "Invalid credentials" });
     }
@@ -121,7 +101,7 @@ app.post("/api/logout", (req, res) => {
 app.put("/api/user/update", authenticate, async (req, res) => {
   try {
     const userEmail = req.user.email;
-    const updatedUser = await user.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { email: userEmail },
       { $set: req.body },
       { new: true }

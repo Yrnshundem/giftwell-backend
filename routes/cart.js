@@ -8,7 +8,6 @@ router.post("/add", authenticate, async (req, res) => {
     const userId = req.user.id;
     const { productId, name, price, quantity = 1 } = req.body;
 
-    // Validate required fields
     if (!productId || !name || price == null || !quantity) {
       return res.status(400).json({ message: "Missing required fields: productId, name, price, or quantity" });
     }

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const cart = require("../models/cart");
+const Cart = require("../models/cart");
 const authenticate = require("../middleware/authenticate");
 
 router.post("/add", authenticate, async (req, res) => {
@@ -57,7 +57,7 @@ router.put("/update", authenticate, async (req, res) => {
       return res.status(400).json({ message: "Invalid productId or quantity" });
     }
 
-    let cart = await cart.findOne({ userId });
+    let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     const item = cart.items.find((item) => item.productId === productId);
@@ -79,7 +79,7 @@ router.delete("/remove/:productId", authenticate, async (req, res) => {
     const userId = req.user.id;
     const { productId } = req.params;
 
-    let cart = await cart.findOne({ userId });
+    let cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     cart.items = cart.items.filter((item) => item.productId !== productId);
@@ -141,7 +141,7 @@ router.post("/merge", authenticate, async (req, res) => {
 router.delete("/clear", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    await cart.deleteOne({ userId });
+    await Cart.deleteOne({ userId });
     res.json({ message: "Cart cleared" });
   } catch (err) {
     console.error("Clear cart error:", err);

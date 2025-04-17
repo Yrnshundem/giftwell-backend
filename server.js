@@ -1,14 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const jwt = require("jsonwebtoken");
 const cartRoutes = require("./routes/cart");
 const paymentRoutes = require("./routes/payment");
+const authRoutes = require("./routes/auth");
 const authenticate = require("./middleware/authenticate");
-const User = require("./models/user");
 const order = require("./models/order");
 
 const app = express();
@@ -42,44 +40,9 @@ mongoose
   });
 
 // Routes
-app.post("/api/signup", async (req, res) => {
-  const { fullName, email, password } = req.body;
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.json({ success: false, message: "Email already exists" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ fullName, email, password: hashedPassword });
-    await newUser.save();
-
-    res.json({ success: true, message: "User created successfully" });
-  } catch (error) {
-    console.error("Signup error:", error);
-    res.status(500).json({ success: false, message: "Signup failed" });
-  }
-});
-
-app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const userInstance = await User.findOne({ email });
-    if (!userInstance || !(await bcrypt.compare(password, userInstance.password))) {
-      return res.status(400).json({ success: false, error: "Invalid credentials" });
-    }
-
-    const token = jwt.sign(
-      { id: userInstance._id, email: userInstance.email, role: userInstance.role },
-      process.env.SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ success: true, token, role: userInstance.role });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ success: false, error: "Login failed" });
-  }
-});
+app.use("/api/auth", authRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.get("/api/isLoggedIn", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -98,24 +61,6 @@ app.post("/api/logout", (req, res) => {
   res.json({ success: true, message: "Logged out successfully" });
 });
 
-app.put("/api/user/update", authenticate, async (req, res) => {
-  try {
-    const userEmail = req.user.email;
-    const updatedUser = await User.findOneAndUpdate(
-      { email: userEmail },
-      { $set: req.body },
-      { new: true }
-    );
-
-    if (!updatedUser)
-      return res.status(404).json({ error: "User not found" });
-    res.json({ message: "Profile updated successfully", user: updatedUser });
-  } catch (error) {
-    console.error("User update error:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 app.get("/api/order_history", authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -126,9 +71,6 @@ app.get("/api/order_history", authenticate, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch order history" });
   }
 });
-
-app.use("/api/cart", cartRoutes);
-app.use("/api/payment", paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

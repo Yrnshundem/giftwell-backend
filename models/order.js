@@ -8,7 +8,7 @@ const itemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
-  userId: { type: String, required: false }, // String to support "guest"
+  userId: { type: String, required: false },
   fullName: { type: String, required: true },
   phone: { type: String, required: true },
   address: { type: String, required: true },
@@ -21,5 +21,4 @@ const orderSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-// Prevent OverwriteModelError
 module.exports = mongoose.models.order || mongoose.model("order", orderSchema);

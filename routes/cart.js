@@ -149,4 +149,7 @@ router.delete("/clear", authenticate, async (req, res) => {
   }
 });
 
+const cors = require("cors");
+app.use(cors());
+
 module.exports = router;

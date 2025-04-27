@@ -14,13 +14,11 @@ const Order = require("./models/order");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Validate environment variables
 if (!process.env.MONGO_URI || !process.env.SECRET_KEY || !process.env.PAYSTACK_SECRET_KEY) {
   console.error("Error: MONGO_URI, SECRET_KEY, and PAYSTACK_SECRET_KEY must be defined in .env");
   process.exit(1);
 }
 
-// CORS configuration
 app.use(
   cors({
     origin: ["https://gift-well-frontend.vercel.app", "http://localhost:3000"],
@@ -28,11 +26,9 @@ app.use(
   })
 );
 
-// Middleware
 app.use(express.json());
 app.use(bodyParser.json());
 
-// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
@@ -41,16 +37,14 @@ mongoose
     process.exit(1);
   });
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 
-// Paystack verification endpoint
-app.post("/api/paystack/verify", authenticate, async (req, res) => {
+app.post("/api/paystack/verify", async (req, res) => {
   const { reference, checkoutData } = req.body;
-  if (!reference || !checkoutData) {
-    return res.status(400).json({ message: "Reference and checkoutData are required" });
+  if (!reference || !checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
+    return res.status(400).json({ message: "Reference and complete checkoutData are required" });
   }
 
   try {
@@ -63,16 +57,26 @@ app.post("/api/paystack/verify", authenticate, async (req, res) => {
 
     const data = response.data;
     if (data.status && data.data.status === "success") {
-      // Save order to MongoDB
+      const token = req.headers.authorization?.split(" ")[1];
+      let userId = null;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.SECRET_KEY);
+          userId = decoded.id;
+        } catch (error) {
+          console.warn("Invalid token:", error.message);
+        }
+      }
+
       const order = new Order({
-        userId: req.user?.id || null, // Optional for guests
-        fullName: checkoutData.fullName || "Unknown",
-        phone: checkoutData.phone || "N/A", // Fallback for missing phone
-        address: checkoutData.address || "N/A",
-        city: checkoutData.city || "N/A",
-        country: checkoutData.country || "N/A",
-        items: checkoutData.items || [],
-        total: checkoutData.amount || 0,
+        userId,
+        fullName: checkoutData.fullName,
+        phone: checkoutData.phone,
+        address: checkoutData.address,
+        city: checkoutData.city,
+        country: checkoutData.country,
+        items: checkoutData.items,
+        total: checkoutData.amount,
         paymentMethod: data.data.channel === "apple_pay" ? "applepay" : "card",
         status: "pending",
       });
@@ -87,23 +91,33 @@ app.post("/api/paystack/verify", authenticate, async (req, res) => {
   }
 });
 
-// Bitcoin order endpoint
-app.post("/api/order/bitcoin", authenticate, async (req, res) => {
+app.post("/api/order/bitcoin", async (req, res) => {
   const { checkoutData } = req.body;
-  if (!checkoutData) {
-    return res.status(400).json({ message: "checkoutData is required" });
+  if (!checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
+    return res.status(400).json({ message: "Complete checkoutData is required" });
   }
 
   try {
+    const token = req.headers.authorization?.split(" ")[1];
+    let userId = null;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        userId = decoded.id;
+      } catch (error) {
+        console.warn("Invalid token:", error.message);
+      }
+    }
+
     const order = new Order({
-      userId: req.user?.id || null, // Optional for guests
-      fullName: checkoutData.fullName || "Unknown",
-      phone: checkoutData.phone || "N/A", // Fallback for missing phone
-      address: checkoutData.address || "N/A",
-      city: checkoutData.city || "N/A",
-      country: checkoutData.country || "N/A",
-      items: checkoutData.items || [],
-      total: checkoutData.amount || 0,
+      userId,
+      fullName: checkoutData.fullName,
+      phone: checkoutData.phone,
+      address: checkoutData.address,
+      city: checkoutData.city,
+      country: checkoutData.country,
+      items: checkoutData.items,
+      total: checkoutData.amount,
       paymentMethod: "bitcoin",
       status: "pending",
     });
@@ -143,13 +157,11 @@ app.get("/api/order_history", authenticate, async (req, res) => {
   }
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

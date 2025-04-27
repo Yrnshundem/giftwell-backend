@@ -48,9 +48,9 @@ app.use("/api/payment", paymentRoutes);
 
 // Paystack verification endpoint
 app.post("/api/paystack/verify", authenticate, async (req, res) => {
-  const { reference } = req.body;
-  if (!reference) {
-    return res.status(400).json({ message: "Reference is required" });
+  const { reference, checkoutData } = req.body;
+  if (!reference || !checkoutData) {
+    return res.status(400).json({ message: "Reference and checkoutData are required" });
   }
 
   try {
@@ -64,14 +64,17 @@ app.post("/api/paystack/verify", authenticate, async (req, res) => {
     const data = response.data;
     if (data.status && data.data.status === "success") {
       // Save order to MongoDB
-      const userId = req.user.id;
-      const checkoutData = req.body.checkoutData || {};
       const order = new Order({
-        userId,
+        userId: req.user?.id || null, // Optional for guests
+        fullName: checkoutData.fullName || "Unknown",
+        phone: checkoutData.phone || "N/A", // Fallback for missing phone
+        address: checkoutData.address || "N/A",
+        city: checkoutData.city || "N/A",
+        country: checkoutData.country || "N/A",
         items: checkoutData.items || [],
         total: checkoutData.amount || 0,
         paymentMethod: data.data.channel === "apple_pay" ? "applepay" : "card",
-        paymentReference: reference,
+        status: "pending",
       });
       await order.save();
       res.json({ status: "success", data: data.data });
@@ -81,6 +84,34 @@ app.post("/api/paystack/verify", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Paystack verification error:", error.response?.data || error.message);
     res.status(500).json({ message: "Error verifying payment", error: error.message });
+  }
+});
+
+// Bitcoin order endpoint
+app.post("/api/order/bitcoin", authenticate, async (req, res) => {
+  const { checkoutData } = req.body;
+  if (!checkoutData) {
+    return res.status(400).json({ message: "checkoutData is required" });
+  }
+
+  try {
+    const order = new Order({
+      userId: req.user?.id || null, // Optional for guests
+      fullName: checkoutData.fullName || "Unknown",
+      phone: checkoutData.phone || "N/A", // Fallback for missing phone
+      address: checkoutData.address || "N/A",
+      city: checkoutData.city || "N/A",
+      country: checkoutData.country || "N/A",
+      items: checkoutData.items || [],
+      total: checkoutData.amount || 0,
+      paymentMethod: "bitcoin",
+      status: "pending",
+    });
+    await order.save();
+    res.json({ status: "success", message: "Bitcoin order saved" });
+  } catch (error) {
+    console.error("Bitcoin order error:", error.message);
+    res.status(500).json({ message: "Error saving Bitcoin order", error: error.message });
   }
 });
 

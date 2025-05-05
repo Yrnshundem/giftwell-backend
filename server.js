@@ -41,6 +41,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 
+
+
 app.post("/api/paystack/verify", async (req, res) => {
   const { reference, checkoutData } = req.body;
   if (!reference || !checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
@@ -63,6 +65,8 @@ app.post("/api/paystack/verify", async (req, res) => {
         try {
           const decoded = jwt.verify(token, process.env.SECRET_KEY);
           userId = decoded.id;
+          // Clear user cart
+          await Cart.findOneAndUpdate({ userId }, { items: [], total: 0 });
         } catch (error) {
           console.warn("Invalid token:", error.message);
         }
@@ -104,6 +108,8 @@ app.post("/api/order/bitcoin", async (req, res) => {
       try {
         const decoded = jwt.verify(token, process.env.SECRET_KEY);
         userId = decoded.id;
+        // Clear user cart
+        await Cart.findOneAndUpdate({ userId }, { items: [], total: 0 });
       } catch (error) {
         console.warn("Invalid token:", error.message);
       }
@@ -128,6 +134,8 @@ app.post("/api/order/bitcoin", async (req, res) => {
     res.status(500).json({ message: "Error saving Bitcoin order", error: error.message });
   }
 });
+
+
 
 app.get("/api/isLoggedIn", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];

@@ -16,3 +16,14 @@
     "dotenv": "^10.0.0"
   }
 }
+
+{
+  "routes": [
+    {
+      "src": "/.well-known/apple-developer-merchantid-domain-association",
+      "headers": {
+        "Content-Type": "text/plain"
+      }
+    }
+  ]
+}

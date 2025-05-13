@@ -19,6 +19,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 
+app.use(
+  cors({
+    origin: ["https://gift-well-frontend.vercel.app", "http://localhost:3000"],
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+app.use(bodyParser.json());
+
 
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
@@ -119,15 +129,7 @@ if (!process.env.MONGO_URI || !process.env.SECRET_KEY || !process.env.PAYSTACK_S
   process.exit(1);
 }
 
-app.use(
-  cors({
-    origin: ["https://gift-well-frontend.vercel.app", "http://localhost:3000"],
-    credentials: true,
-  })
-);
 
-app.use(express.json());
-app.use(bodyParser.json());
 
 mongoose
   .connect(process.env.MONGO_URI)

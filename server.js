@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: ["https://gift-well-frontend.vercel.app", "http://localhost:3000"],
+    origin: ["https://gift-well-frontend.vercel.app", "http://giftwell.pro" "http://localhost:3000"],
     credentials: true,
   })
 );

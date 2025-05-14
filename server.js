@@ -174,6 +174,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "Internal server error" });
 });
 
+app.use((req, res) => {
+console.log(`Route not found: ${req.method} ${req.url}`);
+res.status(404).json({ message: "Route not found" });
+});
+
+app.listen(PORT, () => {
+console.log(`Server running on port ${PORT}`);
+});
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

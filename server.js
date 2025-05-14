@@ -18,6 +18,7 @@ app.use(
         origin: [
             "https://gift-well-frontend.vercel.app",
             "https://giftwell.pro",
+            "https://www.giftwell.pro", 
             "http://localhost:3000"
         ],
         credentials: true,

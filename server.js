@@ -18,7 +18,7 @@ app.use(
         origin: [
             "https://gift-well-frontend.vercel.app",
             "https://giftwell.pro",
-            "https://www.giftwell.pro", 
+            "https://www.giftwell.pro",
             "http://localhost:3000"
         ],
         credentials: true,
@@ -26,6 +26,11 @@ app.use(
 );
 
 app.use(express.json());
+
+// Add root route to handle HEAD and GET / requests
+app.get("/", (req, res) => {
+    res.json({ message: "GiftWell Backend API - Use /api endpoints" });
+});
 
 app.get("/health", (req, res) => {
     res.json({ status: "ok", message: "Server is running" });
@@ -57,7 +62,7 @@ console.log("Registered /api/cart routes");
 app.use("/api/payment", paymentRoutes);
 console.log("Registered /api/payment routes");
 
-// Rest of your server.js code (e.g., /api/paystack/verify, /api/order/bitcoin, etc.)
+// Rest of your server.js code
 app.post("/api/paystack/verify", async (req, res) => {
     const { reference, checkoutData } = req.body;
     if (!reference || !checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
@@ -176,8 +181,8 @@ app.use((err, req, res, next) => {
 });
 
 app.use((req, res) => {
-console.log(`Route not found: ${req.method} ${req.url}`);
-res.status(404).json({ message: "Route not found" });
+    console.log(`Route not found: ${req.method} ${req.url}`);
+    res.status(404).json({ message: "Route not found" });
 });
 
 app.listen(PORT, () => {

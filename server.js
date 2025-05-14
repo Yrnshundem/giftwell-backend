@@ -46,21 +46,22 @@ mongoose
         process.exit(1);
     });
 
-
-
-
-// Routes
+// Register routes with logging
 app.use("/api/auth", authRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/payment", paymentRoutes);
+console.log("Registered /api/auth routes");
 
-// Paystack Verification Endpoint
+app.use("/api/cart", cartRoutes);
+console.log("Registered /api/cart routes");
+
+app.use("/api/payment", paymentRoutes);
+console.log("Registered /api/payment routes");
+
+// Rest of your server.js code (e.g., /api/paystack/verify, /api/order/bitcoin, etc.)
 app.post("/api/paystack/verify", async (req, res) => {
     const { reference, checkoutData } = req.body;
     if (!reference || !checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
         return res.status(400).json({ message: "Reference and complete checkoutData are required" });
     }
-
     try {
         const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
             headers: {
@@ -68,7 +69,6 @@ app.post("/api/paystack/verify", async (req, res) => {
                 "Content-Type": "application/json",
             },
         });
-
         const data = response.data;
         if (data.status && data.data.status === "success") {
             const token = req.headers.authorization?.split(" ")[1];
@@ -77,13 +77,11 @@ app.post("/api/paystack/verify", async (req, res) => {
                 try {
                     const decoded = jwt.verify(token, process.env.SECRET_KEY);
                     userId = decoded.id;
-                    // Clear user cart
                     await Cart.findOneAndUpdate({ userId }, { items: [], total: 0 });
                 } catch (error) {
                     console.warn("Invalid token:", error.message);
                 }
             }
-
             const order = new Order({
                 userId,
                 fullName: checkoutData.fullName,
@@ -107,13 +105,11 @@ app.post("/api/paystack/verify", async (req, res) => {
     }
 });
 
-// Bitcoin Order Endpoint
 app.post("/api/order/bitcoin", async (req, res) => {
     const { checkoutData } = req.body;
     if (!checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
         return res.status(400).json({ message: "Complete checkoutData is required" });
     }
-
     try {
         const token = req.headers.authorization?.split(" ")[1];
         let userId = null;
@@ -121,13 +117,11 @@ app.post("/api/order/bitcoin", async (req, res) => {
             try {
                 const decoded = jwt.verify(token, process.env.SECRET_KEY);
                 userId = decoded.id;
-                // Clear user cart
                 await Cart.findOneAndUpdate({ userId }, { items: [], total: 0 });
             } catch (error) {
                 console.warn("Invalid token:", error.message);
             }
         }
-
         const order = new Order({
             userId,
             fullName: checkoutData.fullName,
@@ -148,11 +142,9 @@ app.post("/api/order/bitcoin", async (req, res) => {
     }
 });
 
-// IsLoggedIn Endpoint
 app.get("/api/isLoggedIn", (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.json({ isLoggedIn: false });
-
     try {
         const decoded = jwt.verify(token, process.env.SECRET_KEY);
         res.json({ isLoggedIn: true, role: decoded.role, userId: decoded.id });
@@ -162,12 +154,10 @@ app.get("/api/isLoggedIn", (req, res) => {
     }
 });
 
-// Logout Endpoint
 app.post("/api/logout", (req, res) => {
     res.json({ success: true, message: "Logged out successfully" });
 });
 
-// Order History Endpoint
 app.get("/api/order_history", authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -179,13 +169,11 @@ app.get("/api/order_history", authenticate, async (req, res) => {
     }
 });
 
-// Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error("Server error:", err);
     res.status(500).json({ error: "Internal server error" });
 });
 
-// Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

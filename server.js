@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const cartRoutes = require("./routes/cart");
@@ -14,33 +13,31 @@ const Order = require("./models/order");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS Configuration
 app.use(
     cors({
         origin: [
             "https://gift-well-frontend.vercel.app",
-            "https://giftwell.pro", // Fixed protocol and added comma
+            "https://giftwell.pro",
             "http://localhost:3000"
         ],
         credentials: true,
     })
 );
 
-// Middleware
-app.use(express.json ());
+app.use(express.json());
 
-// Health Check Endpoint
 app.get("/health", (req, res) => {
     res.json({ status: "ok", message: "Server is running" });
 });
 
-// Environment Variable Validation
 if (!process.env.MONGO_URI || !process.env.SECRET_KEY || !process.env.PAYSTACK_SECRET_KEY) {
     console.error("Error: MONGO_URI, SECRET_KEY, and PAYSTACK_SECRET_KEY must be defined in .env");
     process.exit(1);
 }
 
-// MongoDB Connection
+// Set Mongoose strictQuery option
+mongoose.set("strictQuery", true);
+
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => console.log("Connected to MongoDB"))
@@ -48,6 +45,9 @@ mongoose
         console.error("MongoDB connection error:", err);
         process.exit(1);
     });
+
+
+
 
 // Routes
 app.use("/api/auth", authRoutes);

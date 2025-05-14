@@ -27,7 +27,7 @@ app.use(
 );
 
 // Middleware
-m
+app.use(express.json ());
 
 // Health Check Endpoint
 app.get("/health", (req, res) => {

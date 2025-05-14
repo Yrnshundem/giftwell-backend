@@ -27,7 +27,7 @@ app.use(
 
 app.use(express.json());
 
-// Add root route to handle HEAD and GET / requests
+// Handle root route for HEAD and GET / requests
 app.get("/", (req, res) => {
     res.json({ message: "GiftWell Backend API - Use /api endpoints" });
 });
@@ -62,7 +62,6 @@ console.log("Registered /api/cart routes");
 app.use("/api/payment", paymentRoutes);
 console.log("Registered /api/payment routes");
 
-// Rest of your server.js code
 app.post("/api/paystack/verify", async (req, res) => {
     const { reference, checkoutData } = req.body;
     if (!reference || !checkoutData || !checkoutData.fullName || !checkoutData.phone || !checkoutData.address || !checkoutData.city || !checkoutData.country || !checkoutData.items || !checkoutData.amount) {
@@ -145,18 +144,6 @@ app.post("/api/order/bitcoin", async (req, res) => {
     } catch (error) {
         console.error("Bitcoin order error:", error.message);
         res.status(500).json({ message: "Error saving Bitcoin order", error: error.message });
-    }
-});
-
-app.get("/api/isLoggedIn", (req, res) => {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.json({ isLoggedIn: false });
-    try {
-        const decoded = jwt.verify(token, process.env.SECRET_KEY);
-        res.json({ isLoggedIn: true, role: decoded.role, userId: decoded.id });
-    } catch (error) {
-        console.error("isLoggedIn error:", error);
-        res.json({ isLoggedIn: false });
     }
 });
 

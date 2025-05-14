@@ -13,8 +13,8 @@ console.log("Loading auth.js routes");
 const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
-        user: process.env.EMAIL_USER, // Your Gmail address (e.g., anitaleele53@gmail.com)
-        pass: process.env.EMAIL_PASS, // Your Gmail App Password (e.g., vixcdutghjbzxlpf)
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
     },
 });
 
@@ -127,6 +127,18 @@ router.post("/reset-password", async (req, res) => {
     } catch (error) {
         console.error("Reset password error:", error);
         res.status(500).json({ message: "Error resetting password" });
+    }
+});
+
+router.get("/isLoggedIn", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.json({ isLoggedIn: false });
+    try {
+        const decoded = jwt.verify(token, process.env.SECRET_KEY || "your-secret-key");
+        res.json({ isLoggedIn: true, role: decoded.role, userId: decoded.id });
+    } catch (error) {
+        console.error("isLoggedIn error:", error);
+        res.json({ isLoggedIn: false });
     }
 });
 

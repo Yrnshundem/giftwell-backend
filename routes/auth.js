@@ -1,14 +1,21 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const User = require("../models/user");
+const PasswordResetToken = require("../models/passwordResetToken");
 const router = express.Router();
 
 console.log("Loading auth.js routes");
 
-router.get("/test", (req, res) => {
-    console.log("Accessed /api/auth/test");
-    res.json({ message: "Auth test route working" });
+// Configure nodemailer transporter
+const transporter = nodemailer.createTransport({
+    service: "Gmail",
+    auth: {
+        user: process.env.EMAIL_USER, // Your Gmail address (e.g., anitaleele53@gmail.com)
+        pass: process.env.EMAIL_PASS, // Your Gmail App Password (e.g., vixcdutghjbzxlpf)
+    },
 });
 
 router.post("/signup", async (req, res) => {
@@ -61,6 +68,41 @@ router.post("/login", async (req, res) => {
     } catch (err) {
         console.error("Login error:", err);
         res.status(500).json({ error: "Server error: Failed to login" });
+    }
+});
+
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const token = crypto.randomBytes(32).toString("hex");
+        const expires = new Date(Date.now() + 3600000); // 1 hour expiry
+        await PasswordResetToken.findOneAndUpdate(
+            { userId: user._id },
+            { userId: user._id, token, expires },
+            { upsert: true }
+        );
+        const resetLink = `https://gift-well-frontend.vercel.app/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "GiftWell Password Reset",
+            html: `<p>You requested a password reset for your GiftWell account.</p>
+                   <p>Click <a href="${resetLink}">here</a> to reset your password.</p>
+                   <p>This link will expire in 1 hour.</p>
+                   <p>If you did not request this, please ignore this email.</p>`,
+        };
+        await transporter.sendMail(mailOptions);
+        res.json({ message: "Password reset link sent to your email" });
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        res.status(500).json({ message: "Error sending reset link" });
     }
 });
 

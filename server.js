@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const cartRoutes = require("./routes/cart");
@@ -27,8 +27,7 @@ app.use(
 );
 
 // Middleware
-app.use(express.json());
-app.use(bodyParser.json());
+m
 
 // Health Check Endpoint
 app.get("/health", (req, res) => {
